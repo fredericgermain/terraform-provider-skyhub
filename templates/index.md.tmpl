@@ -1,0 +1,18 @@
+---
+page_title: "{{.ProviderShortName}} Provider"
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.ProviderShortName}} Provider
+
+{{ .Description | trimspace }}
+
+Credentials resolve from the provider block, then `SKYHUB_URL` / `SKYHUB_USER` / `SKYHUB_PASSWORD`,
+then the credentials file (`~/skyhub` with `USER=` and `PASSWORD=` lines).
+
+## Example Usage
+
+{{tffile "examples/provider/provider.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
