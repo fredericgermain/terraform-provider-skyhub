@@ -1,0 +1,10 @@
+/dist/
+/bin/
+go.work
+go.work.sum
+*.test
+*.out
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform-provider-skyhub
