@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/netip"
 	"strconv"
 	"strings"
 
@@ -239,12 +240,30 @@ func (r *firewallRuleResource) refresh(ctx context.Context, m *firewallRuleModel
 			*s = types.StringValue("any")
 		}
 	}
+	// Inbound IPv4 rules always target one LAN host, and the list page shows it
+	// ("192.168.50.200 (7003:7003)"), so read it back: an imported rule then gets
+	// its real lan_start_ip instead of "", and drift in it becomes visible.
+	if got.Direction == skyhub.Inbound && got.IPVersion == 4 {
+		if ip := lanHostFromCell(got.LANUsers); ip != "" {
+			m.LANStartIP = types.StringValue(ip)
+		}
+	}
 	for _, s := range []*types.String{&m.LANStartIP, &m.LANEndIP, &m.WANStartIP, &m.WANEndIP, &m.LANIPv6, &m.WANStartIPv6, &m.WANEndIPv6} {
 		if s.IsNull() || s.IsUnknown() {
 			*s = types.StringValue("")
 		}
 	}
 	return true, nil
+}
+
+// lanHostFromCell returns the IPv4 host at the start of a firewall list cell
+// such as "192.168.50.200 (7003:7003)", or "" if the cell does not start with one.
+func lanHostFromCell(cell string) string {
+	host, _, _ := strings.Cut(strings.TrimSpace(cell), " ")
+	if a, err := netip.ParseAddr(host); err == nil && a.Is4() {
+		return host
+	}
+	return ""
 }
 
 // applyEnabledPosition moves/toggles the rule through the list page.
