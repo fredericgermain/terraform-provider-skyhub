@@ -13,21 +13,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      # The library github.com/fredericgermain/skyhub is private until both
-      # repos go public: a fine-grained PAT with read access to it must be
-      # stored as the LIB_READ_TOKEN secret. Without it this job stops here.
-      - run: |
-          if [ -z "$LIB_READ_TOKEN" ]; then echo "::error::LIB_READ_TOKEN secret missing (read access to the private skyhub library)"; exit 1; fi
-          git config --global url."https://x-access-token:${LIB_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
-        env:
-          LIB_READ_TOKEN: ${{ secrets.LIB_READ_TOKEN }}
+      # The library github.com/fredericgermain/skyhub is public, so it comes
+      # from the Go module proxy like any dependency; the fake-hub tests read
+      # its fixtures from that download (see provider_test.go).
       - run: go mod download
-        env:
-          GOPRIVATE: github.com/fredericgermain
       - run: go vet ./...
       - run: go test ./...
-        env:
-          GOPRIVATE: github.com/fredericgermain
       - run: go generate ./... && git diff --exit-code docs/
-        env:
-          GOPRIVATE: github.com/fredericgermain

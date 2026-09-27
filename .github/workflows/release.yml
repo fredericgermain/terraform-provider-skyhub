@@ -14,11 +14,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: |
-          if [ -z "$LIB_READ_TOKEN" ]; then echo "::error::LIB_READ_TOKEN secret missing (read access to the private skyhub library)"; exit 1; fi
-          git config --global url."https://x-access-token:${LIB_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
-        env:
-          LIB_READ_TOKEN: ${{ secrets.LIB_READ_TOKEN }}
       - id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v6
         with:
@@ -31,4 +26,3 @@ jobs:
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOPRIVATE: github.com/fredericgermain
