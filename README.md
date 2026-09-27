@@ -37,6 +37,9 @@ provider "skyhub" {
 | `skyhub_upnp` | UPnP on/off and advertisement settings | `default` |
 | `skyhub_alg` | SIP / H.323 ALG | `default` |
 | `skyhub_ethernet` | LAN port mode (changes reboot the hub) | `default` |
+| `skyhub_firewall_globals` | IPv6 firewall, IPsec passthrough, inbound ICMPv6 echo | `default` |
+| `skyhub_wireless` | One band: on/off, SSID, hidden, channel, bandwidth, WPA2 key (write-only) | `2.4` or `5` |
+| `skyhub_admin_password` | The `admin` password (write-only); the provider switches to it mid-run | `admin` |
 
 Data sources: `skyhub_attached_devices`, `skyhub_system_stats`, `skyhub_wan_status`.
 
@@ -74,6 +77,12 @@ bitmask.
 
 Nothing in this provider reboots, factory-resets or upgrades the hub. `skyhub_ethernet` and
 `skyhub_lan` changes are the only ones that make the hub restart itself, and the docs say so.
+
+When a `skyhub_lan` change restarts the hub onto a new address, the provider keeps the planned
+values, warns, and does not read back: renew your lease and run again against the new endpoint.
+`skyhub_ethernet` changes wait until the hub is back. Secrets (`psk_wo`, `password_wo`) are
+write-only attributes (Terraform 1.11+): they are sent when the resource is created or its
+`*_wo_version` changes, and never stored in state.
 
 ## Local development
 

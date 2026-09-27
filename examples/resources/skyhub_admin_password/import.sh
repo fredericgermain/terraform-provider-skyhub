@@ -1,0 +1,1 @@
+terraform import skyhub_admin_password.this admin

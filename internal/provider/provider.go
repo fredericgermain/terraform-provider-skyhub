@@ -131,6 +131,9 @@ func (p *skyhubProvider) Resources(_ context.Context) []func() resource.Resource
 		newUPnPResource,
 		newALGResource,
 		newEthernetResource,
+		newFirewallGlobalsResource,
+		newWirelessResource,
+		newAdminPasswordResource,
 	}
 }
 

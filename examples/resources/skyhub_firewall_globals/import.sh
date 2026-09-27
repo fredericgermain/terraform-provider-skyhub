@@ -1,0 +1,1 @@
+terraform import skyhub_firewall_globals.this default

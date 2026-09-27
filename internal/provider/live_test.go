@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
@@ -88,6 +89,79 @@ resource "skyhub_firewall_rule" "t" {
 					statecheck.ExpectKnownValue("skyhub_firewall_rule.t", tfjsonpath.New("position"), knownvalue.Int64Exact(1)),
 				},
 			},
+		},
+	})
+}
+
+// liveOrderedConfig appends three throwaway rules after the hub's existing
+// inbound rules (assumes six, as on the reference hub), created in order
+// through a depends_on chain the way layer2_network does it, and adopts the
+// firewall globals with their current values (no POST).
+const liveOrderedConfig = `
+resource "skyhub_firewall_globals" "g" {
+  ipv6_firewall             = true
+  ipsec_passthrough         = true
+  allow_inbound_icmpv6_echo = true
+}
+resource "skyhub_service" "a" {
+  name       = "tfA"
+  protocol   = "udp"
+  start_port = 65011
+}
+resource "skyhub_service" "b" {
+  name       = "tfB"
+  protocol   = "udp"
+  start_port = 65012
+}
+resource "skyhub_service" "c" {
+  name       = "tfC"
+  protocol   = "udp"
+  start_port = 65013
+}
+resource "skyhub_firewall_rule" "a" {
+  direction    = "in"
+  service      = skyhub_service.a.name
+  action       = "allow_always"
+  lan_start_ip = "192.168.50.250"
+  enabled      = false
+  position     = 7
+}
+resource "skyhub_firewall_rule" "b" {
+  direction    = "in"
+  service      = skyhub_service.b.name
+  action       = "allow_always"
+  lan_start_ip = "192.168.50.250"
+  enabled      = false
+  position     = 8
+  depends_on   = [skyhub_firewall_rule.a]
+}
+resource "skyhub_firewall_rule" "c" {
+  direction    = "in"
+  service      = skyhub_service.c.name
+  action       = "allow_always"
+  lan_start_ip = "192.168.50.250"
+  enabled      = false
+  position     = 9
+  depends_on   = [skyhub_firewall_rule.b]
+}
+`
+
+func TestAccLiveOrderedRulesAndGlobals(t *testing.T) {
+	liveHub(t)
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: liveOrderedConfig,
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("skyhub_firewall_rule.a", tfjsonpath.New("position"), knownvalue.Int64Exact(7)),
+					statecheck.ExpectKnownValue("skyhub_firewall_rule.b", tfjsonpath.New("position"), knownvalue.Int64Exact(8)),
+					statecheck.ExpectKnownValue("skyhub_firewall_rule.c", tfjsonpath.New("position"), knownvalue.Int64Exact(9)),
+					statecheck.ExpectKnownValue("skyhub_firewall_rule.c", tfjsonpath.New("enabled"), knownvalue.Bool(false)),
+				},
+			},
+			{ResourceName: "skyhub_firewall_globals.g", ImportState: true, ImportStateId: "default", ImportStateVerify: true},
+			{Config: liveOrderedConfig, ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}}},
 		},
 	})
 }

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"net/netip"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -578,10 +579,28 @@ func (r *lanResource) apply(ctx context.Context, m *lanModel) error {
 	if want.IP.String() != cur.IP.String() || want.Netmask.String() != cur.Netmask.String() || want.DHCPEnabled != cur.DHCPEnabled ||
 		want.PoolStart.String() != cur.PoolStart.String() || want.PoolEnd.String() != cur.PoolEnd.String() {
 		if err := r.client.SetLANConfig(ctx, want); err != nil {
+			if errors.Is(err, skyhub.ErrHubRestarting) {
+				// The hub is moving to its new address: keep the planned
+				// values, do not read back at the old one.
+				m.ID = types.StringValue(singletonID)
+				m.DHCPEnabled = types.BoolValue(want.DHCPEnabled)
+				if m.LeaseHours.IsUnknown() {
+					m.LeaseHours = types.Int64Null()
+				}
+				return errLANRestarting
+			}
 			return err
 		}
 	}
 	return r.read(ctx, m)
+}
+
+var errLANRestarting = errors.New("hub restarting onto its new LAN address")
+
+// lanRestartWarning explains what to do after a LAN change restarted the hub.
+func lanRestartWarning(ip string) (string, string) {
+	return "Sky Hub restarting onto " + ip,
+		"The LAN change was submitted and the hub is restarting. Renew this machine's DHCP lease, then run again with the endpoint pointing at http://" + ip + "/ to apply the remaining resources."
 }
 
 func (r *lanResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -591,8 +610,11 @@ func (r *lanResource) Create(ctx context.Context, req resource.CreateRequest, re
 		return
 	}
 	if err := r.apply(ctx, &m); err != nil {
-		resp.Diagnostics.AddError("Cannot set LAN", err.Error())
-		return
+		if !errors.Is(err, errLANRestarting) {
+			resp.Diagnostics.AddError("Cannot set LAN", err.Error())
+			return
+		}
+		resp.Diagnostics.AddWarning(lanRestartWarning(m.IP.ValueString()))
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &m)...)
 }
@@ -617,8 +639,11 @@ func (r *lanResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 	if err := r.apply(ctx, &m); err != nil {
-		resp.Diagnostics.AddError("Cannot set LAN", err.Error())
-		return
+		if !errors.Is(err, errLANRestarting) {
+			resp.Diagnostics.AddError("Cannot set LAN", err.Error())
+			return
+		}
+		resp.Diagnostics.AddWarning(lanRestartWarning(m.IP.ValueString()))
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &m)...)
 }
