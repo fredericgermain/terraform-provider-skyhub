@@ -7,10 +7,12 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 
+	"github.com/fredericgermain/skyhub/pkg/skyhub"
 	"github.com/fredericgermain/skyhub/pkg/skyhubtest"
 )
 
@@ -55,6 +57,8 @@ func fakeHub(t *testing.T) *skyhubtest.FakeHub {
 	t.Setenv("SKYHUB_PASSWORD", "secret12")
 	t.Setenv("SKYHUB_CREDENTIALS_FILE", "/nonexistent")
 	t.Setenv("TF_ACC", "1")
+	testClientOptions = []skyhub.Option{skyhub.WithRebootPause(10 * time.Millisecond)}
+	t.Cleanup(func() { testClientOptions = nil })
 	return h
 }
 

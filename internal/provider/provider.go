@@ -112,7 +112,7 @@ func (p *skyhubProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	if !cfg.Timeout.IsNull() && cfg.Timeout.ValueInt64() > 0 {
 		timeout = time.Duration(cfg.Timeout.ValueInt64()) * time.Second
 	}
-	client, err := skyhub.New(endpoint, user, pass, skyhub.WithTimeout(timeout))
+	client, err := skyhub.New(endpoint, user, pass, append([]skyhub.Option{skyhub.WithTimeout(timeout)}, testClientOptions...)...)
 	if err != nil {
 		resp.Diagnostics.AddError("Cannot create hub client", err.Error())
 		return
@@ -162,3 +162,7 @@ func clientFrom(data any) (*skyhub.Client, bool) {
 	c, ok := data.(*skyhub.Client)
 	return c, ok
 }
+
+// testClientOptions are appended to the hub client's options; fake-hub tests
+// shorten the reboot/WiFi waits with it.
+var testClientOptions []skyhub.Option
