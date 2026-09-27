@@ -8,7 +8,7 @@ terraform {
 
 # Credentials default to SKYHUB_URL / SKYHUB_USER / SKYHUB_PASSWORD, then ~/skyhub.
 provider "skyhub" {
-  endpoint = "http://192.168.50.1/"
+  endpoint = "http://192.168.0.1/"
 }
 
 data "skyhub_wan_status" "wan" {}

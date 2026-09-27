@@ -24,7 +24,7 @@ terraform {
 
 # Credentials default to SKYHUB_URL / SKYHUB_USER / SKYHUB_PASSWORD, then ~/skyhub.
 provider "skyhub" {
-  endpoint = "http://192.168.50.1/"
+  endpoint = "http://192.168.0.1/"
 }
 
 data "skyhub_wan_status" "wan" {}
@@ -40,7 +40,7 @@ output "public_ip" {
 ### Optional
 
 - `credentials_file` (String) File with `USER=` / `PASSWORD=` (and optional `URL=`) lines. Defaults to `~/skyhub`.
-- `endpoint` (String) Base URL of the hub. Defaults to `SKYHUB_URL`, then `http://192.168.50.1/`.
+- `endpoint` (String) Base URL of the hub. Defaults to `SKYHUB_URL`, then `http://192.168.0.1/` (the factory address).
 - `password` (String, Sensitive) Admin password. Defaults to `SKYHUB_PASSWORD`, then the credentials file.
 - `timeout` (Number) Per-request timeout in seconds (default 30).
 - `username` (String) Admin user. Defaults to `SKYHUB_USER`, the credentials file, then `admin`.

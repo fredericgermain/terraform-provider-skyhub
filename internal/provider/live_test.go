@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -11,27 +12,27 @@ import (
 )
 
 func TestAccLiveDHCPReservation(t *testing.T) {
-	liveHub(t)
+	ip := liveHub(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `resource "skyhub_dhcp_reservation" "t" {
+				Config: strings.ReplaceAll(`resource "skyhub_dhcp_reservation" "t" {
   mac  = "02:00:00:00:00:01"
-  ip   = "192.168.50.250"
+  ip   = "LIVE_IP"
   name = "tftest"
-}`,
+}`, "LIVE_IP", ip),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue("skyhub_dhcp_reservation.t", tfjsonpath.New("name"), knownvalue.StringExact("tftest")),
 				},
 			},
 			{ResourceName: "skyhub_dhcp_reservation.t", ImportState: true, ImportStateId: "02:00:00:00:00:01", ImportStateVerify: true},
 			{
-				Config: `resource "skyhub_dhcp_reservation" "t" {
+				Config: strings.ReplaceAll(`resource "skyhub_dhcp_reservation" "t" {
   mac  = "02:00:00:00:00:01"
-  ip   = "192.168.50.250"
+  ip   = "LIVE_IP"
   name = "tftest2"
-}`,
+}`, "LIVE_IP", ip),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue("skyhub_dhcp_reservation.t", tfjsonpath.New("name"), knownvalue.StringExact("tftest2")),
 				},
@@ -41,12 +42,12 @@ func TestAccLiveDHCPReservation(t *testing.T) {
 }
 
 func TestAccLiveServiceAndFirewallRule(t *testing.T) {
-	liveHub(t)
+	ip := liveHub(t)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: `
+				Config: strings.ReplaceAll(`
 resource "skyhub_service" "t" {
   name       = "tfTest"
   protocol   = "tcp"
@@ -56,10 +57,10 @@ resource "skyhub_firewall_rule" "t" {
   direction    = "in"
   service      = skyhub_service.t.name
   action       = "allow_always"
-  lan_start_ip = "192.168.50.250"
+  lan_start_ip = "LIVE_IP"
   enabled      = false
 }
-`,
+`, "LIVE_IP", ip),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue("skyhub_service.t", tfjsonpath.New("end_port"), knownvalue.Int64Exact(65001)),
 					statecheck.ExpectKnownValue("skyhub_firewall_rule.t", tfjsonpath.New("enabled"), knownvalue.Bool(false)),
@@ -69,7 +70,7 @@ resource "skyhub_firewall_rule" "t" {
 			{ResourceName: "skyhub_firewall_rule.t", ImportState: true, ImportStateId: "in/4/tfTest", ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{"lan_start_ip", "lan_type", "wan_type", "lan_end_ip", "wan_start_ip", "wan_end_ip", "lan_ipv6", "wan_start_ipv6", "wan_end_ipv6"}},
 			{
-				Config: `
+				Config: strings.ReplaceAll(`
 resource "skyhub_service" "t" {
   name       = "tfTest"
   protocol   = "tcp"
@@ -79,11 +80,11 @@ resource "skyhub_firewall_rule" "t" {
   direction    = "in"
   service      = skyhub_service.t.name
   action       = "allow_always"
-  lan_start_ip = "192.168.50.250"
+  lan_start_ip = "LIVE_IP"
   enabled      = true
   position     = 1
 }
-`,
+`, "LIVE_IP", ip),
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue("skyhub_firewall_rule.t", tfjsonpath.New("enabled"), knownvalue.Bool(true)),
 					statecheck.ExpectKnownValue("skyhub_firewall_rule.t", tfjsonpath.New("position"), knownvalue.Int64Exact(1)),
@@ -122,7 +123,7 @@ resource "skyhub_firewall_rule" "a" {
   direction    = "in"
   service      = skyhub_service.a.name
   action       = "allow_always"
-  lan_start_ip = "192.168.50.250"
+  lan_start_ip = "LIVE_IP"
   enabled      = false
   position     = 7
 }
@@ -130,7 +131,7 @@ resource "skyhub_firewall_rule" "b" {
   direction    = "in"
   service      = skyhub_service.b.name
   action       = "allow_always"
-  lan_start_ip = "192.168.50.250"
+  lan_start_ip = "LIVE_IP"
   enabled      = false
   position     = 8
   depends_on   = [skyhub_firewall_rule.a]
@@ -139,7 +140,7 @@ resource "skyhub_firewall_rule" "c" {
   direction    = "in"
   service      = skyhub_service.c.name
   action       = "allow_always"
-  lan_start_ip = "192.168.50.250"
+  lan_start_ip = "LIVE_IP"
   enabled      = false
   position     = 9
   depends_on   = [skyhub_firewall_rule.b]
@@ -147,12 +148,12 @@ resource "skyhub_firewall_rule" "c" {
 `
 
 func TestAccLiveOrderedRulesAndGlobals(t *testing.T) {
-	liveHub(t)
+	cfg := strings.ReplaceAll(liveOrderedConfig, "LIVE_IP", liveHub(t))
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: liveOrderedConfig,
+				Config: cfg,
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue("skyhub_firewall_rule.a", tfjsonpath.New("position"), knownvalue.Int64Exact(7)),
 					statecheck.ExpectKnownValue("skyhub_firewall_rule.b", tfjsonpath.New("position"), knownvalue.Int64Exact(8)),
@@ -161,7 +162,7 @@ func TestAccLiveOrderedRulesAndGlobals(t *testing.T) {
 				},
 			},
 			{ResourceName: "skyhub_firewall_globals.g", ImportState: true, ImportStateId: "default", ImportStateVerify: true},
-			{Config: liveOrderedConfig, ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}}},
+			{Config: cfg, ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}}},
 		},
 	})
 }

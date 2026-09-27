@@ -47,7 +47,7 @@ func (p *skyhubProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 			"serialises every request, so no `-parallelism` tuning is needed.",
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Base URL of the hub. Defaults to `SKYHUB_URL`, then `http://192.168.50.1/`.",
+				MarkdownDescription: "Base URL of the hub. Defaults to `SKYHUB_URL`, then `http://192.168.0.1/` (the factory address).",
 				Optional:            true,
 			},
 			"username": schema.StringAttribute{

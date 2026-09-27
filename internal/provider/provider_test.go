@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"context"
+	"net/netip"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,11 +64,24 @@ func fakeHub(t *testing.T) *skyhubtest.FakeHub {
 	return h
 }
 
-// liveHub skips unless TF_ACC and SKYHUB_LIVE are set; credentials come
-// from the environment or ~/skyhub as for the CLI.
-func liveHub(t *testing.T) {
+// liveHub skips unless TF_ACC and SKYHUB_LIVE are set (credentials come from
+// the environment or ~/skyhub as for the CLI) and returns the throwaway LAN
+// address the tests use: host .250 on the hub's own /24, so no network's
+// addresses live in the code.
+func liveHub(t *testing.T) string {
 	t.Helper()
 	if os.Getenv("TF_ACC") == "" || os.Getenv("SKYHUB_LIVE") == "" {
 		t.Skip("TF_ACC and SKYHUB_LIVE must be set")
 	}
+	c, err := skyhub.NewFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	lan, err := c.LANConfig(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := lan.IP.Addr.As4()
+	b[3] = 250
+	return netip.AddrFrom4(b).String()
 }

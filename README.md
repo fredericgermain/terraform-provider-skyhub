@@ -17,7 +17,7 @@ terraform {
 }
 
 provider "skyhub" {
-  endpoint = "http://192.168.50.1/"   # default
+  endpoint = "http://192.168.0.1/"   # default (factory address)
   # username / password default to SKYHUB_USER / SKYHUB_PASSWORD,
   # then the credentials file (~/skyhub with USER= and PASSWORD= lines).
   # credentials_file = "/etc/skyhub-creds"
