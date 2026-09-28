@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -95,7 +96,7 @@ resource "skyhub_firewall_rule" "t" {
 }
 
 // liveOrderedConfig appends three throwaway rules after the hub's existing
-// inbound rules (assumes six, as on the reference hub), created in order
+// inbound rules (LIVE_P1..3 = count+1..3, filled in by the test), created in order
 // through a depends_on chain the way layer2_network does it, and adopts the
 // firewall globals with their current values (no POST).
 const liveOrderedConfig = `
@@ -125,7 +126,7 @@ resource "skyhub_firewall_rule" "a" {
   action       = "allow_always"
   lan_start_ip = "LIVE_IP"
   enabled      = false
-  position     = 7
+  position     = LIVE_P1
 }
 resource "skyhub_firewall_rule" "b" {
   direction    = "in"
@@ -133,7 +134,7 @@ resource "skyhub_firewall_rule" "b" {
   action       = "allow_always"
   lan_start_ip = "LIVE_IP"
   enabled      = false
-  position     = 8
+  position     = LIVE_P2
   depends_on   = [skyhub_firewall_rule.a]
 }
 resource "skyhub_firewall_rule" "c" {
@@ -142,22 +143,24 @@ resource "skyhub_firewall_rule" "c" {
   action       = "allow_always"
   lan_start_ip = "LIVE_IP"
   enabled      = false
-  position     = 9
+  position     = LIVE_P3
   depends_on   = [skyhub_firewall_rule.b]
 }
 `
 
 func TestAccLiveOrderedRulesAndGlobals(t *testing.T) {
-	cfg := strings.ReplaceAll(liveOrderedConfig, "LIVE_IP", liveHub(t))
+	ip := liveHub(t)
+	n := liveInboundCount(t)
+	cfg := strings.NewReplacer("LIVE_IP", ip, "LIVE_P1", strconv.Itoa(n+1), "LIVE_P2", strconv.Itoa(n+2), "LIVE_P3", strconv.Itoa(n+3)).Replace(liveOrderedConfig)
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: cfg,
 				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue("skyhub_firewall_rule.a", tfjsonpath.New("position"), knownvalue.Int64Exact(7)),
-					statecheck.ExpectKnownValue("skyhub_firewall_rule.b", tfjsonpath.New("position"), knownvalue.Int64Exact(8)),
-					statecheck.ExpectKnownValue("skyhub_firewall_rule.c", tfjsonpath.New("position"), knownvalue.Int64Exact(9)),
+					statecheck.ExpectKnownValue("skyhub_firewall_rule.a", tfjsonpath.New("position"), knownvalue.Int64Exact(int64(n+1))),
+					statecheck.ExpectKnownValue("skyhub_firewall_rule.b", tfjsonpath.New("position"), knownvalue.Int64Exact(int64(n+2))),
+					statecheck.ExpectKnownValue("skyhub_firewall_rule.c", tfjsonpath.New("position"), knownvalue.Int64Exact(int64(n+3))),
 					statecheck.ExpectKnownValue("skyhub_firewall_rule.c", tfjsonpath.New("enabled"), knownvalue.Bool(false)),
 				},
 			},

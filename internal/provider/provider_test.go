@@ -85,3 +85,24 @@ func liveHub(t *testing.T) string {
 	b[3] = 250
 	return netip.AddrFrom4(b).String()
 }
+
+// liveInboundCount is the number of IPv4 inbound rules on the hub, so the
+// ordered-rules test appends after whatever is there.
+func liveInboundCount(t *testing.T) int {
+	t.Helper()
+	c, err := skyhub.NewFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fw, err := c.FirewallConfig(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, r := range fw.Inbound {
+		if r.IPVersion == 4 {
+			n++
+		}
+	}
+	return n
+}
