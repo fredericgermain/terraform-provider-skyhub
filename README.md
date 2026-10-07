@@ -44,6 +44,17 @@ provider "skyhub" {
 Data sources: `skyhub_attached_devices`, `skyhub_system_stats`, `skyhub_wan_status`.
 
 ```hcl
+# The LAN network and DHCP pool (singleton; changing it restarts the hub).
+resource "skyhub_lan" "this" {
+  ip              = "192.168.50.1"
+  netmask         = "255.255.255.0"
+  dhcp_enabled    = true
+  dhcp_pool_start = "192.168.50.2"
+  dhcp_pool_end   = "192.168.50.254"
+}
+
+# Address reservation (MAC to IPv4). The ip must fall inside the pool above;
+# name is the hub's label (max 17 characters).
 resource "skyhub_dhcp_reservation" "nas" {
   mac  = "aa:bb:cc:dd:ee:ff"
   ip   = "192.168.50.20"
@@ -65,6 +76,28 @@ resource "skyhub_firewall_rule" "ssh_in" {
 
 resource "skyhub_upnp" "this" {
   enabled = false
+}
+
+# One resource per band; band is "2.4" or "5". The WPA2 key is write-only
+# (see skyhub_wireless for the psk_wo / psk_wo_version pattern).
+resource "skyhub_wireless" "band_2g4" {
+  band           = "2.4"
+  enabled        = true
+  ssid           = "my-network"
+  channel        = 0 # auto
+  bandwidth      = "20"
+  psk_wo         = var.wifi_psk
+  psk_wo_version = 1
+}
+
+resource "skyhub_wireless" "band_5g" {
+  band           = "5"
+  enabled        = true
+  ssid           = "my-network"
+  channel        = 36
+  bandwidth      = "80"
+  psk_wo         = var.wifi_psk
+  psk_wo_version = 1
 }
 ```
 

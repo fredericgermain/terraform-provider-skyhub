@@ -21,7 +21,7 @@ data "vault_kv_secret_v2" "skyhub" {
   name  = "home/skyhub"
 }
 
-resource "skyhub_wireless" "band24" {
+resource "skyhub_wireless" "band_2g4" {
   band           = "2.4"
   enabled        = true
   ssid           = data.vault_kv_secret_v2.skyhub.data["wifi_ssid"]
@@ -31,7 +31,7 @@ resource "skyhub_wireless" "band24" {
   psk_wo_version = data.vault_kv_secret_v2.skyhub.version
 }
 
-resource "skyhub_wireless" "band5" {
+resource "skyhub_wireless" "band_5g" {
   band           = "5"
   enabled        = true
   ssid           = data.vault_kv_secret_v2.skyhub.data["wifi_ssid"]
@@ -73,6 +73,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import skyhub_wireless.band24 2.4
-terraform import skyhub_wireless.band5 5
+terraform import skyhub_wireless.band_2g4 2.4
+terraform import skyhub_wireless.band_5g 5
 ```

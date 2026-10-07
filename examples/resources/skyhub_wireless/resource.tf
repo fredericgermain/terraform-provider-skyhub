@@ -6,7 +6,7 @@ data "vault_kv_secret_v2" "skyhub" {
   name  = "home/skyhub"
 }
 
-resource "skyhub_wireless" "band24" {
+resource "skyhub_wireless" "band_2g4" {
   band           = "2.4"
   enabled        = true
   ssid           = data.vault_kv_secret_v2.skyhub.data["wifi_ssid"]
@@ -16,7 +16,7 @@ resource "skyhub_wireless" "band24" {
   psk_wo_version = data.vault_kv_secret_v2.skyhub.version
 }
 
-resource "skyhub_wireless" "band5" {
+resource "skyhub_wireless" "band_5g" {
   band           = "5"
   enabled        = true
   ssid           = data.vault_kv_secret_v2.skyhub.data["wifi_ssid"]
