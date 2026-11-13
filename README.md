@@ -117,7 +117,26 @@ values, warns, and does not read back: renew your lease and run again against th
 write-only attributes (Terraform 1.11+): they are sent when the resource is created or its
 `*_wo_version` changes, and never stored in state.
 
+## Installing
+
+On the [Terraform Registry](https://registry.terraform.io/providers/fredericgermain/skyhub):
+
+```hcl
+terraform {
+  required_providers {
+    skyhub = {
+      source  = "fredericgermain/skyhub"
+      version = "~> 0.4"
+    }
+  }
+}
+```
+
+Releases are signed (key `1B8A911E7B863F3C562D0D0FAA5EDE96582B2D47`); `terraform init` verifies them.
+
 ## Local development
+
+To run Terraform against a local build instead of the Registry:
 
 ```hcl
 # ~/.terraformrc
