@@ -42,5 +42,5 @@ output "public_ip" {
 - `credentials_file` (String) File with `USER=` / `PASSWORD=` (and optional `URL=`) lines. Defaults to `~/skyhub`.
 - `endpoint` (String) Base URL of the hub. Defaults to `SKYHUB_URL`, then `http://192.168.0.1/` (the factory address).
 - `password` (String, Sensitive) Admin password. Defaults to `SKYHUB_PASSWORD`, then the credentials file.
-- `timeout` (Number) Per-request timeout in seconds (default 30).
+- `timeout` (Number) Per-request timeout in seconds (default 120; the hub can take over 30 s to save the firewall rule list once IPv6 rules are in it).
 - `username` (String) Admin user. Defaults to `SKYHUB_USER`, the credentials file, then `admin`.

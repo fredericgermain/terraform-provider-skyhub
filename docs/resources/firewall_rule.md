@@ -45,7 +45,7 @@ resource "skyhub_firewall_rule" "block_telnet_out" {
 - `enabled` (Boolean) Whether the rule is active (default true).
 - `ip_version` (Number) 4 or 6 (default 4).
 - `lan_end_ip` (String) End of the LAN range (outbound `range`).
-- `lan_ipv6` (String) IPv6 rules: `<prefix>|<interface id>` (e.g. `2001:db8:1:2|::10`) or just an interface id to use the hub's global prefix.
+- `lan_ipv6` (String) IPv6 rules: `<prefix>|<interface id>`, e.g. `2001:db8:1:2|::10` or `2001:db8:1:2|204:4bff:fee5:444f`. A bare interface id selects the hub's "Global Prefix" option, which matches the link-local fe80::<id> only: nothing from the internet reaches it, so give the LAN /64 for inbound rules.
 - `lan_start_ip` (String) LAN IPv4 host (inbound: required; outbound: for `single`/`range`).
 - `lan_type` (String) Outbound IPv4 only: `any`, `single` or `range` (default `any`). Inbound IPv4 rules always target the single host in `lan_start_ip`.
 - `logging` (String) `never`, `always`, `match` or `not_match` (default `never`).

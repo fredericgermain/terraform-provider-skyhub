@@ -137,7 +137,7 @@ func (r *firewallRuleResource) Schema(_ context.Context, _ resource.SchemaReques
 				Default:             stringdefault.StaticString(""),
 			},
 			"lan_ipv6": schema.StringAttribute{
-				MarkdownDescription: "IPv6 rules: `<prefix>|<interface id>` (e.g. `2001:db8:1:2|::10`) or just an interface id to use the hub's global prefix.",
+				MarkdownDescription: "IPv6 rules: `<prefix>|<interface id>`, e.g. `2001:db8:1:2|::10` or `2001:db8:1:2|204:4bff:fee5:444f`. A bare interface id selects the hub's \"Global Prefix\" option, which matches the link-local fe80::<id> only: nothing from the internet reaches it, so give the LAN /64 for inbound rules.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(""),
@@ -345,15 +345,10 @@ func (r *firewallRuleResource) Read(ctx context.Context, req resource.ReadReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &m)...)
 }
 
-func (r *firewallRuleResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan, state firewallRuleModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	dir := skyhub.Direction(plan.Direction.ValueString())
-	recreate := plan.Action.ValueString() != state.Action.ValueString() ||
+// needsRecreate: the hub edits a rule by deleting and re-adding it, so any
+// change but enabled/position goes through RemoveFirewallRule + AddFirewallRule.
+func needsRecreate(plan, state firewallRuleModel) bool {
+	return plan.Action.ValueString() != state.Action.ValueString() ||
 		strOr(plan.Logging, "never") != strOr(state.Logging, "never") ||
 		strOr(plan.LANType, "any") != strOr(state.LANType, "any") ||
 		plan.LANStartIP.ValueString() != state.LANStartIP.ValueString() ||
@@ -364,6 +359,37 @@ func (r *firewallRuleResource) Update(ctx context.Context, req resource.UpdateRe
 		plan.LANIPv6.ValueString() != state.LANIPv6.ValueString() ||
 		plan.WANStartIPv6.ValueString() != state.WANStartIPv6.ValueString() ||
 		plan.WANEndIPv6.ValueString() != state.WANEndIPv6.ValueString()
+}
+
+var _ resource.ResourceWithModifyPlan = (*firewallRuleResource)(nil)
+
+// ModifyPlan: lan_users and wan_servers are the hub's display of the addresses
+// and ports, so when those change their old values (kept by UseStateForUnknown)
+// are wrong; plan them as unknown, or Terraform rejects the read-back as an
+// inconsistent result.
+func (r *firewallRuleResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+	var plan, state firewallRuleModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() || !needsRecreate(plan, state) {
+		return
+	}
+	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("lan_users"), types.StringUnknown())...)
+	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("wan_servers"), types.StringUnknown())...)
+}
+
+func (r *firewallRuleResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan, state firewallRuleModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	dir := skyhub.Direction(plan.Direction.ValueString())
+	recreate := needsRecreate(plan, state)
 	position := int64Or(plan.Position, int64Or(state.Position, 0))
 	if recreate {
 		if err := r.client.RemoveFirewallRule(ctx, dir, int(int64Or(state.IPVersion, 4)), state.Service.ValueString()); err != nil && !errors.Is(err, skyhub.ErrNotFound) {

@@ -64,7 +64,7 @@ func (p *skyhubProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 				Optional:            true,
 			},
 			"timeout": schema.Int64Attribute{
-				MarkdownDescription: "Per-request timeout in seconds (default 30).",
+				MarkdownDescription: "Per-request timeout in seconds (default 120; the hub can take over 30 s to save the firewall rule list once IPv6 rules are in it).",
 				Optional:            true,
 			},
 		},
@@ -108,7 +108,7 @@ func (p *skyhubProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			"Set the password attribute, SKYHUB_PASSWORD, or a PASSWORD= line in the credentials file.")
 		return
 	}
-	timeout := 30 * time.Second
+	timeout := 120 * time.Second
 	if !cfg.Timeout.IsNull() && cfg.Timeout.ValueInt64() > 0 {
 		timeout = time.Duration(cfg.Timeout.ValueInt64()) * time.Second
 	}
