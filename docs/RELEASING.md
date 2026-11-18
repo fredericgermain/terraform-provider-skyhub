@@ -6,9 +6,10 @@
 3. GitHub Actions `release` (`.github/workflows/release.yml`) runs goreleaser: binaries for
    every platform, `terraform-registry-manifest.json` attached as
    `terraform-provider-skyhub_X.Y.Z_manifest.json`, and `SHA256SUMS` signed with the GPG key
-   imported from the repo secrets `GPG_PRIVATE_KEY` and `PASSPHRASE` (fingerprint
-   `1B8A 911E 7B86 3F3C 562D 0D0F AA5E DE96 582B 2D47`). Those secrets were set by hand when the
-   repo was created; nothing regenerates them.
+   imported from the repo secret `GPG_PRIVATE_KEY` (no passphrase; fingerprint
+   `1B8A 911E 7B86 3F3C 562D 0D0F AA5E DE96 582B 2D47`). That secret is written by the owner's
+   infrastructure-as-code from the key's secret store: rotate the key there and let it
+   re-apply, never with `gh secret set`.
 4. The Terraform Registry ingests the tag through the GitHub webhook installed at publish time.
    `https://registry.terraform.io/v1/providers/fredericgermain/skyhub/versions` lists the new
    version within minutes; consumers pick it up per their version constraints and re-lock.
